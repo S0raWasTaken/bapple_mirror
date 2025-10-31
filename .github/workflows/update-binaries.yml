@@ -29,7 +29,7 @@ jobs:
       # ---------- FFmpeg: Linux ----------
       - name: Download & extract FFmpeg (Linux)
         run: |
-          URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-linux64-lgpl-shared"))' ffmpeg_latest.json)
+          URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-linux64-lgpl") and (contains("-shared") | not))' ffmpeg_latest.json)
           curl -L "$URL" -o ffmpeg-linux.tar.xz
           mkdir -p bin/linux
           tar -xJf ffmpeg-linux.tar.xz --strip-components=1 -C bin/linux
@@ -40,7 +40,7 @@ jobs:
       # ---------- FFmpeg: Windows ----------
       - name: Download & extract FFmpeg (Windows)
         run: |
-          URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-win64-lgpl-shared"))' ffmpeg_latest.json)
+          URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-win64-lgpl") and (contains("-shared") | not))' ffmpeg_latest.json)
           curl -L "$URL" -o ffmpeg-win.zip
           mkdir -p bin/windows
           unzip -q ffmpeg-win.zip -d temp

@@ -9,27 +9,27 @@ jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # needed to create releases
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install deps
-        run: sudo apt-get install -y jq unzip xz-utils
+      - name: Install dependencies
+        run: sudo apt-get install -y jq unzip xz-utils gh
 
+      # ---------- Fetch metadata ----------
       - name: Fetch latest FFmpeg release info
-        run: |
-          curl -s https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest > ffmpeg_latest.json
+        run: curl -s https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest > ffmpeg_latest.json
 
       - name: Fetch latest yt-dlp release info
-        run: |
-          curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest > ytdlp_latest.json
+        run: curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest > ytdlp_latest.json
 
-      # ---------- FFmpeg: Linux ----------
+      # ---------- Download FFmpeg (Linux static) ----------
       - name: Download & extract FFmpeg (Linux)
         run: |
           URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-linux64-lgpl") and (contains("-shared") | not))' ffmpeg_latest.json)
+          echo "Downloading FFmpeg Linux: $URL"
           curl -L "$URL" -o ffmpeg-linux.tar.xz
           mkdir -p bin/linux
           tar -xJf ffmpeg-linux.tar.xz --strip-components=1 -C bin/linux
@@ -37,10 +37,11 @@ jobs:
           mv bin/linux/bin/ffprobe bin/linux/ffprobe
           rm -rf bin/linux/bin bin/linux/presets
 
-      # ---------- FFmpeg: Windows ----------
+      # ---------- Download FFmpeg (Windows static) ----------
       - name: Download & extract FFmpeg (Windows)
         run: |
           URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-win64-lgpl") and (contains("-shared") | not))' ffmpeg_latest.json)
+          echo "Downloading FFmpeg Windows: $URL"
           curl -L "$URL" -o ffmpeg-win.zip
           mkdir -p bin/windows
           unzip -q ffmpeg-win.zip -d temp
@@ -48,27 +49,38 @@ jobs:
           mv temp/*/bin/ffprobe.exe bin/windows/
           rm -rf temp
 
-      # ---------- yt-dlp ----------
+      # ---------- Download yt-dlp ----------
       - name: Download yt-dlp binaries
         run: |
           LINUX_URL=$(jq -r '.assets[].browser_download_url | select(endswith("yt-dlp_linux"))' ytdlp_latest.json)
           WIN_URL=$(jq -r '.assets[].browser_download_url | select(endswith("yt-dlp.exe"))' ytdlp_latest.json)
-
           mkdir -p bin/linux bin/windows
           curl -L "$LINUX_URL" -o bin/linux/yt-dlp
           curl -L "$WIN_URL" -o bin/windows/yt-dlp.exe
+          chmod +x bin/linux/*
 
-      # ---------- Cleanup and hashes ----------
+      # ---------- Compute checksums ----------
       - name: Compute SHA256 checksums
         run: |
           cd bin
           find . -type f -exec sha256sum {} \; > SHA256SUMS.txt
           cd ..
 
-      - name: Commit & push updates
+      # ---------- Upload to GitHub Release ----------
+      - name: Ensure latest release exists
         run: |
-          git config user.name "GitHub Action"
-          git config user.email "actions@github.com"
-          git add bin
-          git commit -m "Update FFmpeg & yt-dlp binaries" || echo "No changes to commit"
-          git push
+          if ! gh release view latest >/dev/null 2>&1; then
+            gh release create latest -t "Latest Binaries" -n "Auto-updated FFmpeg and yt-dlp binaries"
+          fi
+
+      - name: Upload assets to latest release
+        run: |
+          gh release upload latest \
+            bin/linux/ffmpeg \
+            bin/linux/ffprobe \
+            bin/linux/yt-dlp \
+            bin/windows/ffmpeg.exe \
+            bin/windows/ffprobe.exe \
+            bin/windows/yt-dlp.exe \
+            bin/SHA256SUMS.txt \
+            --clobber

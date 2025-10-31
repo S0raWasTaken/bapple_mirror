@@ -68,12 +68,16 @@ jobs:
 
       # ---------- Upload to GitHub Release ----------
       - name: Ensure latest release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if ! gh release view latest >/dev/null 2>&1; then
             gh release create latest -t "Latest Binaries" -n "Auto-updated FFmpeg and yt-dlp binaries"
           fi
 
       - name: Upload assets to latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload latest \
             bin/linux/ffmpeg \

@@ -29,7 +29,7 @@ jobs:
       # ---------- FFmpeg: Linux ----------
       - name: Download & extract FFmpeg (Linux)
         run: |
-          URL=$(jq -r '.assets[].browser_download_url | select(contains("linux-amd64-lgpl-shared"))' ffmpeg_latest.json)
+          URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-linux64-lgpl-shared"))' ffmpeg_latest.json)
           curl -L "$URL" -o ffmpeg-linux.tar.xz
           mkdir -p bin/linux
           tar -xJf ffmpeg-linux.tar.xz --strip-components=1 -C bin/linux
@@ -40,7 +40,7 @@ jobs:
       # ---------- FFmpeg: Windows ----------
       - name: Download & extract FFmpeg (Windows)
         run: |
-          URL=$(jq -r '.assets[].browser_download_url | select(contains("win64-lgpl-shared"))' ffmpeg_latest.json)
+          URL=$(jq -r '.assets[].browser_download_url | select(contains("master-latest-win64-lgpl-shared"))' ffmpeg_latest.json)
           curl -L "$URL" -o ffmpeg-win.zip
           mkdir -p bin/windows
           unzip -q ffmpeg-win.zip -d temp
@@ -48,28 +48,15 @@ jobs:
           mv temp/*/bin/ffprobe.exe bin/windows/
           rm -rf temp
 
-      # ---------- FFmpeg: macOS ----------
-      - name: Download & extract FFmpeg (macOS)
-        run: |
-          URL=$(jq -r '.assets[].browser_download_url | select(contains("macos64-lgpl-shared"))' ffmpeg_latest.json)
-          curl -L "$URL" -o ffmpeg-macos.zip
-          mkdir -p bin/macos
-          unzip -q ffmpeg-macos.zip -d bin/macos
-          mv bin/macos/ffmpeg* bin/macos/ffmpeg
-          mv bin/macos/ffprobe* bin/macos/ffprobe
-
       # ---------- yt-dlp ----------
       - name: Download yt-dlp binaries
         run: |
           LINUX_URL=$(jq -r '.assets[].browser_download_url | select(endswith("yt-dlp_linux"))' ytdlp_latest.json)
           WIN_URL=$(jq -r '.assets[].browser_download_url | select(endswith("yt-dlp.exe"))' ytdlp_latest.json)
-          MAC_URL=$(jq -r '.assets[].browser_download_url | select(endswith("yt-dlp_macos"))' ytdlp_latest.json)
 
-          mkdir -p bin/linux bin/windows bin/macos
+          mkdir -p bin/linux bin/windows
           curl -L "$LINUX_URL" -o bin/linux/yt-dlp
           curl -L "$WIN_URL" -o bin/windows/yt-dlp.exe
-          curl -L "$MAC_URL" -o bin/macos/yt-dlp
-          chmod +x bin/linux/yt-dlp bin/macos/yt-dlp
 
       # ---------- Cleanup and hashes ----------
       - name: Compute SHA256 checksums
